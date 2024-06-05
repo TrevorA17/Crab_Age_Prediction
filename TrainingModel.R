@@ -52,3 +52,28 @@ print(boot_results)
 
 # Plot the bootstrapping results
 plot(boot_results)
+
+# Load necessary libraries
+library(caret)
+
+# Define a control function for k-fold cross-validation
+control <- trainControl(method = "cv", number = 10)
+
+# Train a linear regression model using k-fold cross-validation
+set.seed(123)
+cv_model <- train(Age ~ Length + Diameter + Height + Weight + Shucked_Weight + Viscera_Weight + Shell_Weight,
+                  data = train_data,
+                  method = "lm",
+                  trControl = control)
+
+# Display the cross-validation results
+print(cv_model)
+
+# Predict on the test set
+predictions <- predict(cv_model, newdata = test_data)
+
+# Calculate and display performance metrics
+mse <- mean((predictions - test_data$Age)^2)
+rmse <- sqrt(mse)
+cat("Mean Squared Error:", mse, "\n")
+cat("Root Mean Squared Error:", rmse, "\n")
