@@ -138,3 +138,45 @@ rf_rmse <- sqrt(rf_mse)
 cat("Random Forest - Mean Squared Error:", rf_mse, "\n")
 cat("Random Forest - Root Mean Squared Error:", rf_rmse, "\n")
 
+# Load necessary libraries
+library(caret)
+library(dplyr)
+library(reshape2)
+
+# Define training control
+train_control <- trainControl(method = "cv", number = 10)
+
+# Define models
+models <- list(
+  "Linear Regression" = list(model = "lm", method = "lm"),
+  "Decision Tree" = list(model = "rpart", method = "rpart"),
+  "Random Forest" = list(model = "rf", method = "rf")
+)
+
+# Train and evaluate models
+results <- lapply(models, function(model) {
+  set.seed(123)
+  train(Age ~ Length + Diameter + Height + Weight + Shucked_Weight + Viscera_Weight + Shell_Weight,
+        data = crab_data,
+        method = model$method,
+        trControl = train_control)
+})
+
+# Extract performance metrics
+performance <- lapply(results, function(model) {
+  resamples <- model$resample
+  resamples$Model <- rownames(resamples)
+  return(resamples)
+})
+
+# Combine results into a single data frame
+performance_df <- do.call(rbind, performance)
+
+# Reshape data for visualization
+performance_melted <- melt(performance_df, id.vars = "Model", variable.name = "Metric", value.name = "Value")
+
+# Plot model performance
+ggplot(performance_melted, aes(x = Model, y = Value, fill = Model)) +
+  geom_boxplot() +
+  facet_wrap(~ Metric, scales = "free_y") +
+  labs(title = "Model Performance Comparison", y = "Value")
