@@ -1,2 +1,2 @@
-# Crab_Age_Prediction
-Using Physical attributes of Crabs found in Boston area - to predict age of Crab
+# Crab Age Prediction
+Welcome to my Crab Age Prediction project! In this project, I aimed to develop a predictive model to estimate the age of crabs based on various physical attributes. I collected data on crab specimens from the Boston area, including measurements such as Length, Diameter, Height, Weight, Shucked Weight, Viscera Weight, and Shell Weight. Using this dataset, I trained a linear regression model to predict the age of crabs. Additionally, I built a Plumber API endpoint to provide easy access to my trained model, allowing users to input crab attributes and receive age predictions in return. My goal is to provide a useful tool for researchers, marine biologists, and anyone interested in understanding the age distribution of crabs in the Boston area. I hope you find my project informative and valuable!
