@@ -33,3 +33,22 @@ test_data <- crab_data[-trainIndex,]
 # Display the size of training and test sets
 cat("Training set size:", nrow(train_data), "\n")
 cat("Test set size:", nrow(test_data), "\n")
+
+# Load necessary libraries
+library(boot)
+
+# Define a function to calculate the mean of Weight
+mean_weight <- function(data, indices) {
+  sample_data <- data[indices, ]
+  return(mean(sample_data$Weight))
+}
+
+# Perform bootstrapping
+set.seed(123)
+boot_results <- boot(data = crab_data, statistic = mean_weight, R = 1000)
+
+# Display bootstrapping results
+print(boot_results)
+
+# Plot the bootstrapping results
+plot(boot_results)
