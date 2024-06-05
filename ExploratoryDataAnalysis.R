@@ -19,3 +19,16 @@ head(crab_data)
 
 # View the dataset in a separate viewer window
 View(crab_data)
+
+# Load necessary libraries
+library(ggplot2)
+
+# Frequency distribution of categorical variable 'Sex'
+sex_frequency <- table(crab_data$Sex)
+print(sex_frequency)
+
+# Plot frequency distribution of 'Sex'
+ggplot(crab_data, aes(x = Sex)) + 
+  geom_bar(fill = "lightblue", color = "black") +
+  labs(title = "Frequency Distribution of Sex", x = "Sex", y = "Frequency")
+
