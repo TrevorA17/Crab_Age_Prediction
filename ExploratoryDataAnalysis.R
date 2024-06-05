@@ -86,3 +86,26 @@ ggplot(crab_data, aes(x = Length, y = Age)) +
   geom_point(color = "blue") +
   geom_smooth(method = "lm", color = "red") +
   labs(title = "Length vs Age", x = "Length", y = "Age")
+
+# Load necessary library
+library(ggplot2)
+library(dplyr)
+library(car)
+
+# ANOVA: Weight by Sex
+anova_result <- aov(Weight ~ Sex, data = crab_data)
+summary(anova_result)
+
+# Post-hoc test if ANOVA is significant
+if (summary(anova_result)[[1]][["Pr(>F)"]][1] < 0.05) {
+  print("ANOVA is significant, performing post-hoc test (Tukey HSD)...")
+  tukey_result <- TukeyHSD(anova_result)
+  print(tukey_result)
+} else {
+  print("ANOVA is not significant, no need for post-hoc test.")
+}
+
+# Boxplot to visualize differences in Weight by Sex
+ggplot(crab_data, aes(x = Sex, y = Weight)) + 
+  geom_boxplot(fill = 'orange', color = 'black') +
+  labs(title = "Boxplot of Weight by Sex", x = "Sex", y = "Weight")
