@@ -109,3 +109,47 @@ if (summary(anova_result)[[1]][["Pr(>F)"]][1] < 0.05) {
 ggplot(crab_data, aes(x = Sex, y = Weight)) + 
   geom_boxplot(fill = 'orange', color = 'black') +
   labs(title = "Boxplot of Weight by Sex", x = "Sex", y = "Weight")
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+
+# Histogram for Length
+ggplot(crab_data, aes(x = Length)) + 
+  geom_histogram(binwidth = 0.1, fill = 'blue', color = 'black') +
+  labs(title = "Histogram of Length", x = "Length", y = "Frequency")
+
+# Density plot for Weight
+ggplot(crab_data, aes(x = Weight)) + 
+  geom_density(fill = 'green', alpha = 0.5) +
+  labs(title = "Density Plot of Weight", x = "Weight", y = "Density")
+
+# Bar plot for categorical variable (Sex)
+ggplot(crab_data, aes(x = Sex)) + 
+  geom_bar(fill = 'purple', color = 'black') +
+  labs(title = "Bar Plot of Sex", x = "Sex", y = "Count")
+
+# Scatter plot between Length and Weight colored by Sex
+ggplot(crab_data, aes(x = Length, y = Weight, color = Sex)) + 
+  geom_point() + 
+  labs(title = "Scatter Plot of Length vs Weight", x = "Length", y = "Weight")
+
+# Pair plot for numeric variables
+pairs(crab_data[, sapply(crab_data, is.numeric)], main = "Pairwise Scatter Plots", 
+      pch = 19, col = crab_data$Sex)
+
+# Enhanced pair plot using GGally package
+install.packages("GGally") 
+library(GGally)
+ggpairs(crab_data, aes(color = Sex, alpha = 0.5))
+
+# Box plot for Length by Sex
+ggplot(crab_data, aes(x = Sex, y = Length)) + 
+  geom_boxplot(fill = 'orange', color = 'black') +
+  labs(title = "Box Plot of Length by Sex", x = "Sex", y = "Length")
+
+# Violin plot for Weight by Sex
+ggplot(crab_data, aes(x = Sex, y = Weight)) + 
+  geom_violin(fill = 'cyan', color = 'black') +
+  labs(title = "Violin Plot of Weight by Sex", x = "Sex", y = "Weight")
+
