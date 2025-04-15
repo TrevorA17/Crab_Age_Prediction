@@ -16,6 +16,9 @@ Trevor Okinda
   - [Measures of Relationship](#measures-of-relationship)
   - [ANOVA](#anova)
   - [Plots](#plots)
+- [Preprocessing and Data
+  Transformation](#preprocessing-and-data-transformation)
+  - [Missing Values](#missing-values)
 
 # Student Details
 
@@ -416,3 +419,7 @@ ggplot(crab_data, aes(x = Sex, y = Weight)) +
 ```
 
 ![](crab_age_prediction_files/figure-gfm/Plots-8.png)<!-- -->
+
+# Preprocessing and Data Transformation
+
+## Missing Values
