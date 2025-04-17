@@ -19,6 +19,13 @@ Trevor Okinda
 - [Preprocessing and Data
   Transformation](#preprocessing-and-data-transformation)
   - [Missing Values](#missing-values)
+- [Training Model](#training-model)
+  - [Data Splitting](#data-splitting)
+  - [Bootstrapping](#bootstrapping)
+  - [Cross-validation](#cross-validation)
+  - [Train Different Models](#train-different-models)
+  - [Performance Metrics](#performance-metrics)
+- [Saving Model](#saving-model)
 
 # Student Details
 
@@ -423,3 +430,457 @@ ggplot(crab_data, aes(x = Sex, y = Weight)) +
 # Preprocessing and Data Transformation
 
 ## Missing Values
+
+``` r
+# Check for missing values in each column
+missing_values <- sapply(crab_data, function(x) sum(is.na(x)))
+print(missing_values)
+```
+
+    ##            Sex         Length       Diameter         Height         Weight 
+    ##              0              0              0              0              0 
+    ## Shucked_Weight Viscera_Weight   Shell_Weight            Age 
+    ##              0              0              0              0
+
+``` r
+# Display the columns with missing values and their counts
+missing_values_df <- data.frame(Column = names(missing_values), MissingValues = missing_values)
+print(missing_values_df)
+```
+
+    ##                        Column MissingValues
+    ## Sex                       Sex             0
+    ## Length                 Length             0
+    ## Diameter             Diameter             0
+    ## Height                 Height             0
+    ## Weight                 Weight             0
+    ## Shucked_Weight Shucked_Weight             0
+    ## Viscera_Weight Viscera_Weight             0
+    ## Shell_Weight     Shell_Weight             0
+    ## Age                       Age             0
+
+``` r
+# Visualize missing values using the VIM package
+library(VIM)
+```
+
+    ## Loading required package: colorspace
+
+    ## Loading required package: grid
+
+    ## The legacy packages maptools, rgdal, and rgeos, underpinning the sp package,
+    ## which was just loaded, will retire in October 2023.
+    ## Please refer to R-spatial evolution reports for details, especially
+    ## https://r-spatial.org/r/2023/05/15/evolution4.html.
+    ## It may be desirable to make the sf package available;
+    ## package maintainers should consider adding sf to Suggests:.
+    ## The sp package is now running under evolution status 2
+    ##      (status 2 uses the sf package in place of rgdal)
+
+    ## VIM is ready to use.
+
+    ## Suggestions and bug-reports can be submitted at: https://github.com/statistikat/VIM/issues
+
+    ## 
+    ## Attaching package: 'VIM'
+
+    ## The following object is masked from 'package:datasets':
+    ## 
+    ##     sleep
+
+``` r
+aggr(crab_data, col = c('navyblue', 'red'), numbers = TRUE, sortVars = TRUE, labels = names(crab_data), cex.axis = 0.7, gap = 3, ylab = c("Missing data", "Pattern"))
+```
+
+![](crab_age_prediction_files/figure-gfm/Missing%20Values-1.png)<!-- -->
+
+    ## 
+    ##  Variables sorted by number of missings: 
+    ##        Variable Count
+    ##             Sex     0
+    ##          Length     0
+    ##        Diameter     0
+    ##          Height     0
+    ##          Weight     0
+    ##  Shucked_Weight     0
+    ##  Viscera_Weight     0
+    ##    Shell_Weight     0
+    ##             Age     0
+
+# Training Model
+
+## Data Splitting
+
+``` r
+# Load necessary libraries
+library(caret)
+```
+
+    ## Loading required package: lattice
+
+``` r
+library(dplyr)
+
+# Split the data into training (80%) and test (20%) sets
+set.seed(123)
+trainIndex <- createDataPartition(crab_data$Age, p = 0.8, list = FALSE)
+train_data <- crab_data[trainIndex,]
+test_data <- crab_data[-trainIndex,]
+
+# Display the size of training and test sets
+cat("Training set size:", nrow(train_data), "\n")
+```
+
+    ## Training set size: 3117
+
+``` r
+cat("Test set size:", nrow(test_data), "\n")
+```
+
+    ## Test set size: 776
+
+## Bootstrapping
+
+``` r
+# Load necessary libraries
+library(boot)
+```
+
+    ## 
+    ## Attaching package: 'boot'
+
+    ## The following object is masked from 'package:lattice':
+    ## 
+    ##     melanoma
+
+    ## The following object is masked from 'package:car':
+    ## 
+    ##     logit
+
+``` r
+# Define a function to calculate the mean of Weight
+mean_weight <- function(data, indices) {
+  sample_data <- data[indices, ]
+  return(mean(sample_data$Weight))
+}
+
+# Perform bootstrapping
+set.seed(123)
+boot_results <- boot(data = crab_data, statistic = mean_weight, R = 1000)
+
+# Display bootstrapping results
+print(boot_results)
+```
+
+    ## 
+    ## ORDINARY NONPARAMETRIC BOOTSTRAP
+    ## 
+    ## 
+    ## Call:
+    ## boot(data = crab_data, statistic = mean_weight, R = 1000)
+    ## 
+    ## 
+    ## Bootstrap Statistics :
+    ##     original       bias    std. error
+    ## t1* 23.56728 -0.004976455   0.2152089
+
+``` r
+# Plot the bootstrapping results
+plot(boot_results)
+```
+
+![](crab_age_prediction_files/figure-gfm/Bootstrapping-1.png)<!-- -->
+
+## Cross-validation
+
+``` r
+# Load necessary libraries
+library(caret)
+
+# Define a control function for k-fold cross-validation
+control <- trainControl(method = "cv", number = 10)
+
+# Train a linear regression model using k-fold cross-validation
+set.seed(123)
+cv_model <- train(Age ~ Length + Diameter + Height + Weight + Shucked_Weight + Viscera_Weight + Shell_Weight,
+                  data = train_data,
+                  method = "lm",
+                  trControl = control)
+
+# Display the cross-validation results
+print(cv_model)
+```
+
+    ## Linear Regression 
+    ## 
+    ## 3117 samples
+    ##    7 predictor
+    ## 
+    ## No pre-processing
+    ## Resampling: Cross-Validated (10 fold) 
+    ## Summary of sample sizes: 2804, 2805, 2804, 2806, 2806, 2806, ... 
+    ## Resampling results:
+    ## 
+    ##   RMSE     Rsquared  MAE     
+    ##   2.25488  0.509246  1.616641
+    ## 
+    ## Tuning parameter 'intercept' was held constant at a value of TRUE
+
+``` r
+# Predict on the test set
+predictions <- predict(cv_model, newdata = test_data)
+
+# Calculate and display performance metrics
+mse <- mean((predictions - test_data$Age)^2)
+rmse <- sqrt(mse)
+cat("Mean Squared Error:", mse, "\n")
+```
+
+    ## Mean Squared Error: 4.979091
+
+``` r
+cat("Root Mean Squared Error:", rmse, "\n")
+```
+
+    ## Root Mean Squared Error: 2.231388
+
+## Train Different Models
+
+``` r
+# Load necessary libraries
+library(caret)
+library(rpart)
+library(randomForest)
+```
+
+    ## randomForest 4.7-1.1
+
+    ## Type rfNews() to see new features/changes/bug fixes.
+
+    ## 
+    ## Attaching package: 'randomForest'
+
+    ## The following object is masked from 'package:dplyr':
+    ## 
+    ##     combine
+
+    ## The following object is masked from 'package:ggplot2':
+    ## 
+    ##     margin
+
+``` r
+# Train a linear regression model
+lm_model <- train(Age ~ Length + Diameter + Height + Weight + Shucked_Weight + Viscera_Weight + Shell_Weight,
+                  data = train_data,
+                  method = "lm")
+
+# Display the linear regression model summary
+print(summary(lm_model$finalModel))
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = .outcome ~ ., data = dat)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -9.7934 -1.3645 -0.3848  0.8994 12.1761 
+    ## 
+    ## Coefficients:
+    ##                Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)     2.93007    0.31031   9.442  < 2e-16 ***
+    ## Length         -0.42240    0.83519  -0.506    0.613    
+    ## Diameter        5.38386    1.02520   5.251 1.61e-07 ***
+    ## Height          4.17748    0.65698   6.359 2.33e-10 ***
+    ## Weight          0.32696    0.03003  10.888  < 2e-16 ***
+    ## Shucked_Weight -0.71229    0.03361 -21.195  < 2e-16 ***
+    ## Viscera_Weight -0.35089    0.05302  -6.618 4.28e-11 ***
+    ## Shell_Weight    0.29498    0.04688   6.292 3.56e-10 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 2.217 on 3109 degrees of freedom
+    ## Multiple R-squared:  0.5237, Adjusted R-squared:  0.5226 
+    ## F-statistic: 488.3 on 7 and 3109 DF,  p-value: < 2.2e-16
+
+``` r
+# Predict on the test set
+lm_predictions <- predict(lm_model, newdata = test_data)
+
+# Calculate performance metrics
+lm_mse <- mean((lm_predictions - test_data$Age)^2)
+lm_rmse <- sqrt(lm_mse)
+cat("Linear Regression - Mean Squared Error:", lm_mse, "\n")
+```
+
+    ## Linear Regression - Mean Squared Error: 4.979091
+
+``` r
+cat("Linear Regression - Root Mean Squared Error:", lm_rmse, "\n")
+```
+
+    ## Linear Regression - Root Mean Squared Error: 2.231388
+
+``` r
+# Train a decision tree model
+dt_model <- train(Age ~ Length + Diameter + Height + Weight + Shucked_Weight + Viscera_Weight + Shell_Weight,
+                  data = train_data,
+                  method = "rpart")
+
+# Display the decision tree model summary
+print(dt_model$finalModel)
+```
+
+    ## n= 3117 
+    ## 
+    ## node), split, n, deviance, yval
+    ##       * denotes terminal node
+    ## 
+    ## 1) root 3117 32082.580  9.958293  
+    ##   2) Shell_Weight< 4.812328 1070  5076.426  7.581308 *
+    ##   3) Shell_Weight>=4.812328 2047 17800.480 11.200780  
+    ##     6) Shell_Weight< 10.04281 1414  9766.728 10.608910 *
+    ##     7) Shell_Weight>=10.04281 633  6431.918 12.522910 *
+
+``` r
+# Plot the decision tree
+plot(dt_model$finalModel)
+text(dt_model$finalModel, use.n = TRUE)
+```
+
+![](crab_age_prediction_files/figure-gfm/Train%20Different%20models-1.png)<!-- -->
+
+``` r
+# Predict on the test set
+dt_predictions <- predict(dt_model, newdata = test_data)
+
+# Calculate performance metrics
+dt_mse <- mean((dt_predictions - test_data$Age)^2)
+dt_rmse <- sqrt(dt_mse)
+cat("Decision Tree - Mean Squared Error:", dt_mse, "\n")
+```
+
+    ## Decision Tree - Mean Squared Error: 7.297444
+
+``` r
+cat("Decision Tree - Root Mean Squared Error:", dt_rmse, "\n")
+```
+
+    ## Decision Tree - Root Mean Squared Error: 2.701378
+
+``` r
+# Train a random forest model
+set.seed(123)
+rf_model <- randomForest(Age ~ Length + Diameter + Height + Weight + Shucked_Weight + Viscera_Weight + Shell_Weight,
+                         data = train_data, ntree = 500)
+
+# Display the random forest model summary
+print(rf_model)
+```
+
+    ## 
+    ## Call:
+    ##  randomForest(formula = Age ~ Length + Diameter + Height + Weight +      Shucked_Weight + Viscera_Weight + Shell_Weight, data = train_data,      ntree = 500) 
+    ##                Type of random forest: regression
+    ##                      Number of trees: 500
+    ## No. of variables tried at each split: 2
+    ## 
+    ##           Mean of squared residuals: 4.649969
+    ##                     % Var explained: 54.82
+
+``` r
+# Predict on the test set
+rf_predictions <- predict(rf_model, newdata = test_data)
+
+# Calculate performance metrics
+rf_mse <- mean((rf_predictions - test_data$Age)^2)
+rf_rmse <- sqrt(rf_mse)
+cat("Random Forest - Mean Squared Error:", rf_mse, "\n")
+```
+
+    ## Random Forest - Mean Squared Error: 5.024096
+
+``` r
+cat("Random Forest - Root Mean Squared Error:", rf_rmse, "\n")
+```
+
+    ## Random Forest - Root Mean Squared Error: 2.24145
+
+## Performance Metrics
+
+``` r
+# Load necessary libraries
+library(caret)
+library(dplyr)
+library(reshape2)
+
+# Define training control
+train_control <- trainControl(method = "cv", number = 10)
+
+# Define models
+models <- list(
+  "Linear Regression" = list(model = "lm", method = "lm"),
+  "Decision Tree" = list(model = "rpart", method = "rpart"),
+  "Random Forest" = list(model = "rf", method = "rf")
+)
+
+# Train and evaluate models
+results <- lapply(models, function(model) {
+  set.seed(123)
+  train(Age ~ Length + Diameter + Height + Weight + Shucked_Weight + Viscera_Weight + Shell_Weight,
+        data = crab_data,
+        method = model$method,
+        trControl = train_control)
+})
+
+# Extract performance metrics
+performance <- lapply(results, function(model) {
+  resamples <- model$resample
+  resamples$Model <- rownames(resamples)
+  return(resamples)
+})
+
+# Combine results into a single data frame
+performance_df <- do.call(rbind, performance)
+
+# Reshape data for visualization
+performance_melted <- melt(performance_df, id.vars = "Model", variable.name = "Metric", value.name = "Value")
+
+# Plot model performance
+ggplot(performance_melted, aes(x = Model, y = Value, fill = Model)) +
+  geom_boxplot() +
+  facet_wrap(~ Metric, scales = "free_y") +
+  labs(title = "Model Performance Comparison", y = "Value")
+```
+
+![](crab_age_prediction_files/figure-gfm/Models%20performance%20w%20resamples-1.png)<!-- -->
+
+# Saving Model
+
+``` r
+# Saving the linear regression model
+saveRDS(lm_model, "./models/saved_lm_model.rds")
+
+# Load the saved model
+loaded_lm_model <- readRDS("./models/saved_lm_model.rds")
+
+# Prepare new data for prediction
+new_data <- data.frame(
+  Length = 1.5,
+  Diameter = 1.2,
+  Height = 0.4,
+  Weight = 30,
+  Shucked_Weight = 15,
+  Viscera_Weight = 7,
+  Shell_Weight = 8
+)
+
+# Use the loaded model to make predictions
+predictions_loaded_model <- predict(loaded_lm_model, newdata = new_data)
+
+# Print predictions
+print(predictions_loaded_model)
+```
+
+    ##        1 
+    ## 9.456157
